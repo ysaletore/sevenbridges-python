@@ -96,7 +96,7 @@ class HttpClient(object):
         return self._request_id
 
     def _rate_limit(self):
-        self._request('GET', url='rate_limit', append_base=True)
+        self._request(verb='GET', url='/rate_limit', append_base=True)
 
     @check_for_error
     def _request(self, verb, url, headers=None, params=None, data=None,
