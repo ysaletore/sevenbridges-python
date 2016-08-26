@@ -1,7 +1,7 @@
 import json
 import platform
 from datetime import datetime as dt
-from time import sleep
+import time
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -76,7 +76,6 @@ class HttpClient(object):
 
     @property
     def limit(self):
-        self._rate_limit()
         return int(self._limit) if self._limit else self._limit
 
     @property
@@ -101,6 +100,14 @@ class HttpClient(object):
     @check_for_error
     def _request(self, verb, url, headers=None, params=None, data=None,
                  append_base=False, stream=False):
+        if self._autowait and not url == '/rate_limit':
+            if not self._remaining:
+                self._rate_limit()
+            if int(self._remaining) < 4:
+                sleep_time = int(self._reset) - int(time.time() + 5)
+                if sleep_time > 0:
+                    time.sleep(sleep_time + 5)
+
         if append_base:
             url = self.url + url
         if not headers:
@@ -121,11 +128,6 @@ class HttpClient(object):
         headers = response.headers
         self._limit = headers.get('X-RateLimit-Limit', self._limit)
         self._remaining = headers.get('X-RateLimit-Remaining', self._remaining)
-
-        if self._autowait and self._remaining < 1:
-            sleep = int(self._remaining) - int(time.time())
-            if sleep > 0:
-                time.sleep(sleep + 5)
 
         self._reset = headers.get('X-RateLimit-Reset', self._reset)
         self._last_response_time = response.elapsed.total_seconds()
